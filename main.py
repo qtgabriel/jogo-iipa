@@ -1,5 +1,6 @@
 import turtle
 
+from scr.enemy import Enemy
 from scr.player import Player
 from scr.world_map import WorldMap
 
@@ -27,6 +28,14 @@ def main():
     world_map.draw()
 
     player = Player(world_map, *world_map.spawn)
+
+    # Cada inimigo tem a sua rota (waypoints), cor e velocidade.
+    enemies = [
+        Enemy(world_map, [(2, 8), (2, 2), (6, 2), (6, 8)], interval=600),
+        Enemy(world_map, [(12, 17), (12, 27), (14, 27), (14, 17)], interval=450),
+    ]
+    for enemy in enemies:
+        enemy.start()
 
     screen.listen()
     screen.onkeypress(player.move_up, "w")

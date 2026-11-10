@@ -3,7 +3,7 @@ from scr.world_map import WorldMap
 
 class Player:
 
-    def __init__(self, world_map: WorldMap, row: int, col: int):
+    def __init__(self, world_map: WorldMap, row: int, col: int) -> None:
         self.world = world_map
         self.row = row
         self.col = col
@@ -27,6 +27,9 @@ class Player:
         self.row = target_row
         self.col = target_col
         self.sync()
+
+    def execute_path(self):
+        pass
 
     def move_up(self) -> None:
         self.move(-1, 0)
