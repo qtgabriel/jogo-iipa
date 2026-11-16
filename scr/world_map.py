@@ -5,10 +5,10 @@ MAP_1 = [
     [1, 1, 98, 98, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
@@ -72,7 +72,9 @@ MAP_3 = [
 
 FLOOR, WALL, EXIT, SPAWN = 0, 1, 98, 99
 
-COLORS = {FLOOR: (1, 0, 0), SPAWN: (1, 0, 0), WALL: (0, 0, 0), EXIT: (1, 0.85, 0)}
+FLOOR_IMAGE = "sprites/floor1.png"      # textura do chão (0 e 99)
+WALL_IMAGE = "sprites/wall1.png"        # textura da parede (1)
+EXIT_COLOR = (1, 0.85, 0)               # amarelo da saída (98)
 
 
 class WorldMap:
@@ -99,14 +101,31 @@ class WorldMap:
         tracing = self.screen.tracer()
         self.screen.tracer(0)
 
-        t = turtle.Turtle()
-        t.hideturtle()
-        t.speed(0)
+        # cada textura vira uma "forma" que o turtle pode carimbar
+        self.screen.register_shape(FLOOR_IMAGE)
+        self.screen.register_shape(WALL_IMAGE)
+
+        floor = turtle.Turtle(visible=False)
+        floor.penup()
+        floor.shape(FLOOR_IMAGE)
+        wall = turtle.Turtle(visible=False)
+        wall.penup()
+        wall.shape(WALL_IMAGE)
+
         for row, cells in enumerate(self.map):
             for col, cell in enumerate(cells):
                 x = self.origin[0] + col * self.sqr_size
                 y = self.origin[1] - row * self.sqr_size
-                self._square(t, x, y, COLORS.get(cell, (1, 1, 1)))
+                center = (x + self.sqr_size / 2, y - self.sqr_size / 2)
+
+                if cell in (FLOOR, SPAWN):
+                    floor.goto(*center)
+                    floor.stamp()
+                elif cell == WALL:
+                    wall.goto(*center)
+                    wall.stamp()
+                else:
+                    self._square(wall, x, y, EXIT_COLOR)
 
         self.screen.update()
         self.screen.tracer(tracing)
@@ -121,6 +140,7 @@ class WorldMap:
             t.forward(self.sqr_size)
             t.right(90)
         t.end_fill()
+        t.penup()
 
     def cell_to_pixel(self, row, col):
         x = self.origin[0] + col * self.sqr_size + self.sqr_size / 2

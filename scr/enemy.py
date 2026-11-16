@@ -12,6 +12,7 @@ class Enemy:
     NORMAL_VISION = (5, 40, 2)
     ALERT_VISION = (8, 75, 3)
     SEARCH_TIME = 5.0          # segundos procurando depois de perder o alvo
+    STUN_TIME = 5.0            # segundos parado e sem detectar depois do tiro
     CHASE_SPEED = 2            # na perseguição anda 2x mais rápido
 
     COLORS = {
@@ -38,6 +39,7 @@ class Enemy:
         self.state = "patrol"
         self.last_seen = None
         self.search_until = 0
+        self.stunned_until = 0
         self.running = False
 
         self.t = turtle.Turtle()
@@ -199,8 +201,25 @@ class Enemy:
         self._move_to(self.path[next_index])
         self.index = next_index
 
+    def stun(self):
+        """Fica parado e sem detectar por STUN_TIME segundos."""
+        self.stunned_until = time.monotonic() + self.STUN_TIME
+        self.state = "patrol"
+        self.vision.clear()
+        self.t.color("cyan")
+
+    @property
+    def stunned(self):
+        return time.monotonic() < self.stunned_until
+
     def step(self):
         now = time.monotonic()
+
+        if now < self.stunned_until:
+            return
+        if self.stunned_until:
+            self.stunned_until = 0
+            self.t.color("green")
 
         if self.sees_target():
             self.state = "chase"

@@ -7,6 +7,7 @@ from scr.world_map import MAP_1, MAP_2, MAP_3, WorldMap
 
 TILE = 20
 MAX_LIVES = 3
+MAX_AMMO = 5            # balas atordoantes por partida
 INVULNERABLE = 1.5      # segundos sem poder levar outro encosto
 
 # Cada fase é (mapa, [(rota, intervalo em ms), ...]).
@@ -35,9 +36,11 @@ class Game:
         self.world = None
         self.player = None
         self.hud = None
+        self.bullet = None
         self.enemies = []
         self.phase = 0
         self.lives = MAX_LIVES
+        self.ammo = MAX_AMMO
         self.started = False
         self.resetting = False
         self.protected_until = 0.0
@@ -61,6 +64,7 @@ class Game:
         if not self.started:
             self.started = True
             self.lives = MAX_LIVES
+            self.ammo = MAX_AMMO
             self.load(0)
 
     def load(self, index):
@@ -84,8 +88,11 @@ class Game:
 
         self.hud = turtle.Turtle(visible=False)
         self.hud.penup()
+        self.bullet = turtle.Turtle(visible=False)
+        self.bullet.penup()
         self.draw_hud()
 
+        self.screen.onkeypress(self.shoot, "space")
         self.screen.onkeypress(lambda: self.move(-1, 0), "w")
         self.screen.onkeypress(lambda: self.move(0, -1), "a")
         self.screen.onkeypress(lambda: self.move(1, 0), "s")
@@ -95,14 +102,47 @@ class Game:
     def draw_hud(self):
         self.hud.clear()
         self.hud.goto(self.world.origin[0], self.world.origin[1] + 16)
-        self.hud.write(f"Vida: {self.lives}", align="left", font=("Arial", 14, "bold"))
+        self.hud.write(f"Vida: {self.lives}   Balas: {self.ammo}",
+                       align="left", font=("Arial", 14, "bold"))
 
     def move(self, d_row, d_col):
         self.player.move(d_row, d_col)
         if (self.player.row, self.player.col) == self.world.exit():
             self.next_phase()
-        elif any((e.row, e.col) == (self.player.row, self.player.col) for e in self.enemies):
+        elif any((e.row, e.col) == (self.player.row, self.player.col) and not e.stunned
+                 for e in self.enemies):
             self.hit()
+
+    def shoot(self):
+        if not self.started or self.ammo <= 0:
+            return
+
+        self.ammo -= 1
+        self.draw_hud()
+
+        d_row, d_col = self.player.facing
+        row, col = self.player.row, self.player.col
+        hit = None
+
+        # a bala anda em linha reta até a parede ou até um inimigo
+        while True:
+            next_row, next_col = row + d_row, col + d_col
+            if not self.world.is_walkable(next_row, next_col):
+                break
+            row, col = next_row, next_col
+            hit = next((e for e in self.enemies if (e.row, e.col) == (row, col)), None)
+            if hit is not None:
+                break
+
+        self.bullet.clear()
+        self.bullet.goto(*self.world.cell_to_pixel(self.player.row, self.player.col))
+        self.bullet.pendown()
+        self.bullet.goto(*self.world.cell_to_pixel(row, col))
+        self.bullet.penup()
+        self.screen.ontimer(self.bullet.clear, 150)
+
+        if hit is not None:
+            hit.stun()
 
     def hit(self):
         if not self.started or self.resetting:
@@ -142,6 +182,7 @@ class Game:
         """Zerou as vidas: começa de novo na primeira fase."""
         self.resetting = False
         self.lives = MAX_LIVES
+        self.ammo = MAX_AMMO
         self.load(0)
 
 
